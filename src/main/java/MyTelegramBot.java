@@ -10,58 +10,18 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static java.awt.SystemColor.text;
 import static javax.swing.UIManager.get;
 
 public class MyTelegramBot extends TelegramLongPollingBot {
-
+    HashMap<String, String> cities = new HashMap<>();
     ArrayList<String> users = new ArrayList<>();
-    @Override
-    public void onUpdateReceived(Update update) {
-        if (update.hasMessage()){
-            String message = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
-            int messageId = update.getMessage().getMessageId();
-            if (update.getMessage().hasPhoto()){
-                List<PhotoSize> photos = update.getMessage().getPhoto();
-                sendPhoto(chatId, photos.get(0).getFileId());
-            }
-            if (message.equals("/showKeyboard")) {
-                showKeyboard(message, chatId, messageId);
-            }
-            else if (message.equals("/hideKeyboard")) {
-                hideKeyboard(message, chatId, messageId);
-            }
-            else if (message.equals("/getMeme")) {
-                sendPhoto(chatId, "http://memesmix.net/media/created/2xtsr8.jpg");
-            }
-            else if (message.equals("/register")) {
-                User user = update.getMessage().getFrom();
-                users.add(user.getUserName());
-            }
-            else if (message.equals("/unregister")) {
-                User user = update.getMessage().getFrom();
-                users.remove(user.getUserName());
-            }
-            else if (message.equals("/getRandomUser")) {
-                if (users.size()>0){
+    boolean addMode = false;
 
-
-                String randomUserName = users.get((int) (Math.random() * users.size()));
-                sendMessage("Победитель " + randomUserName, chatId, messageId);
-                } else {
-                    sendMessage("Никто не хочет играть", chatId, messageId);
-                }
-            }
-            else
-            {
-                sendMessage(message, chatId, messageId);
-            }
-        }
-
-    }
-//test
     @Override
     public String getBotUsername() {
         return "LahtaTennisBot";
@@ -73,12 +33,50 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         return "505716268:AAGRLQXn8ob0LbjcjiwrNZXpWQSl6hfPoCg";
     }
 
-    private void sendMessage(String text, long chatId, int messageId){
+
+
+    @Override
+    public void onUpdateReceived(Update update) {
+        long chatId = update.getMessage().getChatId();
+        int messageId = update.getMessage().getMessageId();
+        String message = update.getMessage().getText();
+        if (update.getMessage().hasPhoto()) {
+
+            List<PhotoSize> photos = update.getMessage().getPhoto();
+            sendPhoto(chatId, photos.get(0).getFileId());
+        } else if (addMode){
+            addCity(message, chatId);
+            addMode = false;
+        }
+        else {
+
+            switch (message) {
+                case "/addCity":
+                    sendMessage("Введите город: ", chatId);
+                    addMode = true;
+                    break;
+                case "/getCities":
+                    getCities(message, chatId);
+                    break;
+                case "/showKeyboard":
+                    showKeyboard(message, chatId, messageId);
+                    break;
+                case "/hideKeyboard":
+                    hideKeyboard(message, chatId, messageId);
+                    break;
+                default:
+                    sendMessage(message, chatId);
+            }
+        }
+
+    }
+
+
+
+    private void sendMessage(String text, long chatId){
         SendMessage sendMessage = new SendMessage()
                 .setText(text)
-                .setChatId(chatId)
-                .setReplyToMessageId(messageId);
-
+                .setChatId(chatId);
 
 
         try {
@@ -111,6 +109,21 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
+    }
+    private void addCity(String text, long chatId){
+        String[] кусочки = text.split(" ");
+        cities.put(кусочки[0], кусочки[1]);
+        sendMessage("Город добавлен!", chatId);
+    }
+
+    private void getCities(String message, long chatId){
+
+        String result = "Города: \n";
+        for(Map.Entry<String, String> строчка : cities.entrySet()) {
+            result += строчка.getKey() + " - " + строчка.getValue();
+            result += "\n";
+        }
+        sendMessage(result, chatId);
     }
 
     private void hideKeyboard(String text, long chatId, int messageId){
