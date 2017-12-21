@@ -11,15 +11,15 @@ import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.awt.SystemColor.text;
 import static javax.swing.UIManager.get;
 
 public class MyTelegramBot extends TelegramLongPollingBot {
+
+    private ArrayList<Record> records = new ArrayList<>();
+
     HashMap<String, String> clientsOnMonday = new HashMap<>();
     HashMap<String, String> clientsOnTuesday = new HashMap<>();
     HashMap<String, String> clientsOnWednesday= new HashMap<>();
@@ -79,8 +79,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         else {
 
             switch (message) {
-                case "/start":
-                    sendMessage("Добро пожаловать! Этот бот был создан для удобной записи в спортивный теннисный клуб Lahta-Tennis! \n Cписок команд: \n /запись - арендовать тенисный корт \n /свободноевремя - просмотреть свободное время", chatId);
                 case "/запись":     //запустить процесс записи человека
                     addReserv(message, chatId);
                     break;
@@ -191,11 +189,11 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
-    private void addMember(String text, long chatId, int messageId){
-        String[] кусочки = text.split(" ");
-        //cities.put(кусочки[0], кусочки[1]);
-        sendMessage("Вы успешно записались!", chatId);
-    }
+//    private void addMember(String text, long chatId, int messageId){
+//        String[] кусочки = text.split(" ");
+//        //cities.put(кусочки[0], кусочки[1]);
+//        sendMessage("Вы успешно записались!", chatId);
+//    }
 
     private void getFreeTime(String message, long chatId) {
             ReplyKeyboardMarkup rkm = new ReplyKeyboardMarkup();
@@ -339,8 +337,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         sendMessage(result, chatId);
     }
 
-
-
     private void sendPhoto(long chatId, String photo){
         SendPhoto request = new SendPhoto();
         request.setChatId(chatId);
@@ -350,6 +346,47 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * метод возвращает запись по дню и времени
+     */
+    private void checkAdd(String day, String time, String name) {
+        Record record = get(day, time);
+        if (record == null) {
+            add(day, time, name);
+        } else {
+            if (record.members.size() < 5){
+                record.addMember(name);
+            }
+        }
+    }
+
+    private void remove(String day, String time, String name) {
+        Record record = get(day, time);
+        if (record != null) {
+            record.removeMember(name);
+        }
+    }
+
+    private Record get(String day, String time) {
+        int size = records.size();
+        for (int i = 0; i < size; i++) {
+            Record record = records.get(i);
+            if (Objects.equals(record.day, day) && Objects.equals(record.time, time)){
+                return record;
+            }
+        }
+
+        return null;
+    }
+
+    private void add(String day, String time, String name) {
+        Record record = new Record();
+
+        record.time = time;
+        record.day = day;
+        record.addMember(name);
     }
 
 }
